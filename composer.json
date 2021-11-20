@@ -1,0 +1,10 @@
+{
+    "name": "a.taskaev/vk-bot-php",
+    "authors": [
+        {
+            "name": "anyTask",
+            "email": "noEmailsorry@github.com"
+        }
+    ],
+    "require": {}
+}
