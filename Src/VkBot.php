@@ -12,6 +12,7 @@ class VkBot extends Parser
     private $listGroupsFile = 'configs/groupsList.json';
     private $config = 'configs/config.json';
     private $tempFolder = 'temp/';
+    private $fileFolder = 'files/';
     
     public function run(): array
     {
@@ -54,6 +55,7 @@ class VkBot extends Parser
             }
 
             foreach ($content['response']['items'] as $items) {
+                $uniqId = $groupName . $items['id'];
                 $text = $items['text'] ?? '';
                 $date = '';
                 $dateRaw = $items['date'] ?? '';
@@ -64,9 +66,15 @@ class VkBot extends Parser
                 }
 
                 $attachments = $this->attachmentsProcessing($items['attachments'] ?? []);
+                $results[$uniqId] = [
+                    'text'        => $text,
+                    'date'        => $date,
+                    'attachments' => $attachments,
+                ]; 
             }
+
             echo '<pre>';
-            var_export($content);
+            var_export($results);
             echo '</pre>';
         }
 
@@ -87,8 +95,18 @@ class VkBot extends Parser
                     $results['photo'][] = $photo;
                 }
             }
+
+            if ($attachment['type'] === 'video') {
+                $typeVideo = $attachment['video']['platform'];
+                if ($typeVideo === 'YouTube') {
+                    $video = $this->getVideoYoutube($attachment['video']);
+                    if (!empty($video)) {
+                        $results['video'][] = 'https://vk.com/syktyvenglish?z=' . $video;
+                    }
+                }
+            }
         }
-        
+
         return $results;
     }
     
@@ -109,10 +127,10 @@ class VkBot extends Parser
         }
 
         $image = $this->downloadFile($url);
-        echo '<div style="background: gray"><pre>';
-            echo '<a href="' . $url . '">' . $image . '</a><br>';
-            // print_r($url);
-        echo '</pre></div>';
+        // echo '<div style="background: gray"><pre>';
+        //     echo '<a href="' . $url . '">' . $image . '</a><br>';
+        //     // print_r($url);
+        // echo '</pre></div>';
         
         return $image;
     }
@@ -203,7 +221,35 @@ class VkBot extends Parser
         curl_close($this->curlSimpleInit());
         fclose($filePointer);
 
-        return $fileName;
+        // if (empty(filesize($tmpFile))) {
+        //     $this->errors[] = 'Не удалось скачать файл: ' . $url;
+        //     print_r(filesize($tmpFile));
+        //     print_r(($tmpFile));
+        //     return $readyFile;
+        // }
+
+        copy($tmpFile, $this->fileFolder . $fileName);
+        unlink($tmpFile);
+
+        //todo
+        //решить вопрос почему для временного файла filesize возвращает ноль
+        // это из-за fopen
+        if (empty(filesize($this->fileFolder . $fileName))) {
+            $this->errors[] = 'Не удалось скачать файл: ' . $url;
+            unlink($this->fileFolder . $fileName);
+            return $readyFile;
+        }
+
+        $readyFile = $this->fileFolder . $fileName;
+        return $readyFile;
+    }
+
+    private function getVideoYoutube(array $dataVideo): string
+    {
+        $videoFrame = '';
+        //https://vk.com/syktyvenglish?z=video-150625730_456239017
+        $videoFrame = 'video' . $dataVideo['owner_id'] . '_' . $dataVideo['id'];
+        return $videoFrame;
     }
 
     public function getGroupsList(): array
