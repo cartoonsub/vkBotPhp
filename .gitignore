@@ -8,3 +8,4 @@ composer.phar
 configs/config.json
 configs/config.php
 Src/Curl.php
+temp/*

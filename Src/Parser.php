@@ -84,13 +84,79 @@ class Parser
         "CURLE_CHUNK_FAILED"
     ];
 
-    public static function getPage($params = [])
+    private static $curlResource = false;
+    // Host: cartoonsub.com
+    // Connection: keep-alive
+    // sec-ch-ua: " Not A;Brand";v="99", "Chromium";v="96", "Google Chrome";v="96"
+    // sec-ch-ua-mobile: ?0
+    // sec-ch-ua-platform: "Windows"
+    // DNT: 1
+    // Upgrade-Insecure-Requests: 1
+    // User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36
+    // Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+    // Sec-Fetch-Site: none
+    // Sec-Fetch-Mode: navigate
+    // Sec-Fetch-User: ?1
+    // Sec-Fetch-Dest: document
+    // Accept-Encoding: gzip, deflate, br
+    // Accept-Language: ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7
+    // Cookie: PHPSESSID=390d02eac8ad809411907d360b734419; _ym_uid=1612370314248293594; _ga=GA1.2.1674183073.1612370314; _ym_d=1635591906
+
+    public function curlSimpleInit()
     {
-        if (empty($params)) {
-            return 'Пустые поля параметров';
+        self::$curlResource = curl_init();
+        $startHeaders = [
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36',
+            'Accept'     => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'Connection' => 'keep-alive',
+        ];
+
+        $headers = [];
+        foreach ($startHeaders as $key => $value) {
+            $headers[] = sprintf('%s: %s', $key, $value);
+        }
+        
+        curl_setopt_array(
+            self::$curlResource,
+            [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_AUTOREFERER    => true,
+                CURLOPT_TIMEOUT        => 120,
+                CURLOPT_HTTPHEADER     => $headers,
+            ]
+        );
+
+        return self::$curlResource;
+    }
+
+    public function getPage(string $url, array $params = []): array
+    {
+        $results = [];
+        if (empty($url)) {
+            $results = [
+                'errors' => 'Не передан url адрес',
+            ];
+            return $results;
         }
 
-        $url = $params["url"];
+        $curl = $this->curlSimpleInit();
+        curl_setopt_array(
+            $curl,
+            [
+                CURLOPT_URL            => $url,
+                CURLOPT_HEADER         => $params['headers'] ?? false,
+                CURLOPT_FOLLOWLOCATION => $params['follow'] ?? true,
+            ]
+        );
+
+        $content = curl_exec($curl);
+        $info = curl_getinfo($curl);
+        $results = [
+            'content' => $content,
+            'info'    => $info,
+        ];
+        return $results;
         $sUserAgent = !empty($arParams["useragent"]) ? $arParams["useragent"] : "Mozilla/5.0 (Windows NT 6.3; W…) Gecko/20100101 Firefox/57.0";
         $iTimeout = !empty($arParams["timeout"]) ? $arParams["timeout"] : 5;
         $iConnectTimeout = !empty($arParams["connecttimeout"]) ? $arParams["connecttimeout"] : 5;
@@ -170,5 +236,10 @@ class Parser
             "data" => $arData,
             "error" => $arError
         ];
+    }
+
+    public function getContent(string $url): string
+    {
+        return '';
     }
 }
