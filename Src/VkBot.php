@@ -25,9 +25,8 @@ class VkBot extends Parser
         $config = json_decode(file_get_contents($this->config), true); 
         $token = $config['token'] ?? '';
 
-        $this->getDataFromGroups($groups, $token);
-
-        return [];
+        $results = $this->getDataFromGroups($groups, $token);
+        return $results;
     }
 
     private function getDataFromGroups(array $groups, string $token): array
@@ -72,10 +71,6 @@ class VkBot extends Parser
                     'attachments' => $attachments,
                 ]; 
             }
-
-            echo '<pre>';
-            var_export($results);
-            echo '</pre>';
         }
 
         return $results;
@@ -97,13 +92,13 @@ class VkBot extends Parser
             }
 
             if ($attachment['type'] === 'video') {
-                $typeVideo = $attachment['video']['platform'];
-                if ($typeVideo === 'YouTube') {
-                    $video = $this->getVideoYoutube($attachment['video']);
-                    if (!empty($video)) {
-                        $results['video'][] = 'https://vk.com/syktyvenglish?z=' . $video;
-                    }
-                }
+                // $typeVideo = $attachment['video']['platform'];
+                // if ($typeVideo === 'YouTube') {
+                //     $video = $this->getVideoYoutube($attachment['video']);
+                //     if (!empty($video)) {
+                //         $results['video'][] = 'https://vk.com/syktyvenglish?z=' . $video;
+                //     }
+                // }
             }
         }
 
