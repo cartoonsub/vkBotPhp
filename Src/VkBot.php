@@ -16,6 +16,7 @@ class VkBot extends Parser
     
     public function run(): array
     {
+        $results = [];
         $groups = $this->getGroupsList();
         if (empty($groups)) {
             $this->errors[] = 'Не найден или пустой файл со списком групп';
@@ -25,7 +26,12 @@ class VkBot extends Parser
         $config = json_decode(file_get_contents($this->config), true); 
         $token = $config['token'] ?? '';
 
-        $results = $this->getDataFromGroups($groups, $token);
+        $srcData = $this->getDataFromGroups($groups, $token);
+        if (empty($srcData)) {
+            return $results;
+        }
+
+        $this->addNewDataToFile($srcData);
         return $results;
     }
 
@@ -63,9 +69,9 @@ class VkBot extends Parser
                 } else {
                     $date = date('Y-m-d', $dateRaw);
                 }
-
+                
                 $attachments = $this->attachmentsProcessing($items['attachments'] ?? []);
-                $results[$uniqId] = [
+                $results[$groupName][$uniqId] = [
                     'text'        => $text,
                     'date'        => $date,
                     'attachments' => $attachments,
@@ -92,13 +98,13 @@ class VkBot extends Parser
             }
 
             if ($attachment['type'] === 'video') {
-                // $typeVideo = $attachment['video']['platform'];
-                // if ($typeVideo === 'YouTube') {
-                //     $video = $this->getVideoYoutube($attachment['video']);
-                //     if (!empty($video)) {
-                //         $results['video'][] = 'https://vk.com/syktyvenglish?z=' . $video;
-                //     }
-                // }
+                $typeVideo = $attachment['video']['platform'] ?? '';
+                if ($typeVideo === 'YouTube') {
+                    $video = $this->getVideoYoutube($attachment['video']);
+                    if (!empty($video)) {
+                        $results['video'][] = 'https://vk.com/syktyvenglish?z=' . $video;
+                    }
+                }
             }
         }
 
@@ -264,4 +270,11 @@ class VkBot extends Parser
         return $results;
     }
 
+    private function addNewDataToFile(array $srcData): void
+    {
+        // file_get_contents()
+        // echo '<pre>';
+        // print_r($srcData);
+        // echo '</pre>';
+    }
 }
