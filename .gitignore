@@ -9,3 +9,4 @@ configs/config.json
 configs/config.php
 Src/Curl.php
 temp/*
+.vscode/sftp copy.json

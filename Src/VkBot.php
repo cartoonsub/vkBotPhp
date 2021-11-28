@@ -13,10 +13,15 @@ class VkBot extends Parser
     private $config = 'configs/config.json';
     private $tempFolder = 'temp/';
     private $fileFolder = 'files/';
+    private $jsonFile = 'srcData/allData.json';
     
-    public function run(): array
+    public function run($onlyJson = false): array
     {
         $results = [];
+        if ($onlyJson === true) {
+            return $this->addNewDataToJson([]);
+        }
+
         $groups = $this->getGroupsList();
         if (empty($groups)) {
             $this->errors[] = 'Не найден или пустой файл со списком групп';
@@ -31,7 +36,7 @@ class VkBot extends Parser
             return $results;
         }
 
-        $this->addNewDataToFile($srcData);
+        $results = $this->addNewDataToJson($srcData);
         return $results;
     }
 
@@ -61,6 +66,7 @@ class VkBot extends Parser
 
             foreach ($content['response']['items'] as $items) {
                 $uniqId = $groupName . $items['id'];
+                $ownerId = $items['owner_id'];
                 $text = $items['text'] ?? '';
                 $date = '';
                 $dateRaw = $items['date'] ?? '';
@@ -72,9 +78,13 @@ class VkBot extends Parser
                 
                 $attachments = $this->attachmentsProcessing($items['attachments'] ?? []);
                 $results[$groupName][$uniqId] = [
+                    'uniqId'      => $uniqId,
                     'text'        => $text,
                     'date'        => $date,
                     'attachments' => $attachments,
+                    'owner_id'    => $ownerId,
+                    'wallLink'    => 'https://vk.com/animatron?w=wall' . $ownerId . '_' . $items['id'],
+                    // 'url'         => $url,
                 ]; 
             }
         }
@@ -90,6 +100,7 @@ class VkBot extends Parser
         }
 
         foreach ($attachments as $attachment) {
+            sleep(mt_rand(1, 3));
             if ($attachment['type'] === 'photo') {
                 $photo = $this->getPhoto($attachment['photo']['sizes']);
                 if (!empty($photo)) {
@@ -270,11 +281,51 @@ class VkBot extends Parser
         return $results;
     }
 
-    private function addNewDataToFile(array $srcData): void
+    private function addNewDataToJson(array $srcData): array
     {
-        // file_get_contents()
-        // echo '<pre>';
-        // print_r($srcData);
-        // echo '</pre>';
+        $allData = $this->getDataFromJson();
+        foreach ($srcData as $groupName => $items) {
+            foreach ($items as $uniqId => $item) {
+                $allData[$groupName][$uniqId] = $item;
+            }
+        }
+        
+        file_put_contents($this->jsonFile, json_encode($allData));
+        
+        $allData = $this->sortData($allData);
+        return $allData;
+    }
+
+    private function getDataFromJson(): array
+    {
+        $results = [];
+        if (!is_file($this->jsonFile)) {
+            return $results;
+        }
+
+        $data = json_decode(file_get_contents($this->jsonFile), true);
+        if (!empty($data)) {
+            $results = $data;
+        }
+
+        return $results;
+    }
+
+    private function sortData(array $allData): array
+    {
+        $results = [];
+        function sortFunction($a, $b) {
+            return strtotime($a['date']) - strtotime($b['date']);
+        }
+
+        foreach ($allData as $group => $items) {
+            usort($items, "sortFunction");
+            $allData[$group] = array_reverse($items);
+        }
+
+        
+
+        
+        return $allData;
     }
 }
