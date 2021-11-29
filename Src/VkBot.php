@@ -18,8 +18,9 @@ class VkBot extends Parser
     public function run($onlyJson = false): array
     {
         $results = [];
+        $history = $this->getDataFromJson();
         if ($onlyJson === true) {
-            return $this->addNewDataToJson([]);
+            return $history;
         }
 
         $groups = $this->getGroupsList();
@@ -313,7 +314,6 @@ class VkBot extends Parser
 
     private function sortData(array $allData): array
     {
-        $results = [];
         function sortFunction($a, $b) {
             return strtotime($a['date']) - strtotime($b['date']);
         }
