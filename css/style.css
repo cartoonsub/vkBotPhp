@@ -1,0 +1,36 @@
+body {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+img {
+    display: block;
+    width: 100%;
+}
+
+.main {
+    display: block;
+    margin: auto;
+    width: 80%;
+    background: white;
+    margin-top: 90px;
+}
+
+.block {
+    padding: 10px 30px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid linear-gradient(white, black, white);
+}
+
+.gallery {
+    display: flex;
+}
+
+.picture {
+    margin-top: 15px;
+    margin-left: 10px;
+    width: 60%;
+}
+
+a {
+    color: #43b27d;
+}
