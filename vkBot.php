@@ -45,13 +45,15 @@ $results = $Parser->run($skip, $groupName);
             <?php endforeach; ?>
         <?php endforeach; ?>
     </div>
-    <?php
-
-    echo '<pre>';
-    var_export($results);
-    echo '</pre>';
-
-    ?>
 </body>
 
 </html>
+
+        
+<?php
+
+// echo '<pre>';
+// var_export($results);
+// echo '</pre>';
+
+?>
