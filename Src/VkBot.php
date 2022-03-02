@@ -13,7 +13,7 @@ class VkBot extends Parser
     private $errors = [];
     private $listGroupsFile = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/configs/groupsList.json';
     private $config = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/configs/config.json';
-    private $tempFolder = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/';
+    private $tempFolder = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/temp/';
     private $fileFolder = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/files/';
     private $jsonFile = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/srcData/allData.json';
     
@@ -42,7 +42,7 @@ class VkBot extends Parser
         if (empty($srcData)) {
             return $results;
         }
-
+        print_r($this->errors);
         $results = $this->addNewDataToJson($srcData);
         return $results;
     }
@@ -72,9 +72,9 @@ class VkBot extends Parser
                 $id = $items['id'];
                 $uniqId = $groupName . '_' . $id;
 
-                if (!empty($history[$uniqId])) {
-                    continue;
-                }
+                // if (!empty($history[$uniqId])) {
+                //     continue;
+                // }
 
                 $ownerId = $items['owner_id'];
                 $text = $items['text'] ?? '';
@@ -95,6 +95,7 @@ class VkBot extends Parser
                     'owner_id'    => $ownerId,
                     'wallLink'    => 'https://vk.com/' .$groupName . '?w=wall' . $ownerId . '_' . $id,
                 ];
+                break;
             }
         }
 
@@ -186,7 +187,6 @@ class VkBot extends Parser
 
         // curl_close($this->curlSimpleInit());
         // fclose($filePointer);
-
         $data = $this->getPage($url);
         if (empty($data['content'])) {
             $this->errors[] = 'Не скачен файл: ' . $uniqId . ' => ' . $url;
@@ -194,8 +194,9 @@ class VkBot extends Parser
         }
         
         file_put_contents($tmpFile, $data['content']);
+        clearstatcache();
         if (empty(filesize($tmpFile))) {
-            $this->errors[] = 'Не скачен файл, пустой: ' . $uniqId . ' => ' . $url;
+            $this->errors[] = 'Не скачен файл, пустой: ' . $uniqId . ' => ' . $url . ' => ' . $tmpFile;
             unlink($tmpFile);
             return $readyFile;
         }
