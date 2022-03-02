@@ -11,11 +11,12 @@ use Src\Parser;
 class VkBot extends Parser
 {
     private $errors = [];
-    private $listGroupsFile = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/configs/groupsList.json';
-    private $config = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/configs/config.json';
-    private $tempFolder = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/temp/';
-    private $fileFolder = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/files/';
-    private $jsonFile = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/srcData/allData.json';
+    private $serverPath = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/';
+    private $listGroupsFile = 'configs/groupsList.json';
+    private $config = 'configs/config.json';
+    private $tempFolder = 'temp/';
+    private $fileFolder = 'files/';
+    private $jsonFile = 'srcData/allData.json';
     private $history = [];
 
     public function run(bool $getHistory = false, string $groupName): array
@@ -32,7 +33,7 @@ class VkBot extends Parser
             return $this->errors;
         }
 
-        $config = json_decode(file_get_contents($this->config), true); 
+        $config = json_decode(file_get_contents($this->serverPath . $this->config), true); 
         $token = $config['token'] ?? '';
         if (empty($token)) {
             $this->errors[] = 'Не найден токен';
@@ -41,7 +42,7 @@ class VkBot extends Parser
 
         $srcData = $this->getDataFromGroups($groups, $token);
         if (empty($srcData)) {
-            return $results;
+            return $this->history;
         }
         
         $results = $this->addNewDataToJson($srcData);
@@ -73,9 +74,9 @@ class VkBot extends Parser
                 $id = $items['id'];
                 $uniqId = $groupName . '_' . $id;
 
-                // if (!empty($history[$uniqId])) {
-                //     continue;
-                // }
+                if (!empty($this->history[$groupName][$uniqId])) {
+                    continue;
+                }
 
                 $ownerId = $items['owner_id'];
                 $text = $items['text'] ?? '';
@@ -96,7 +97,6 @@ class VkBot extends Parser
                     'owner_id'    => $ownerId,
                     'wallLink'    => 'https://vk.com/' .$groupName . '?w=wall' . $ownerId . '_' . $id,
                 ];
-                break;
             }
         }
 
@@ -202,16 +202,16 @@ class VkBot extends Parser
             return $readyFile;
         }
 
-        if (!is_dir($this->fileFolder . $groupName . '/')) {
-            mkdir($this->fileFolder . $groupName . '/');
+        if (!is_dir($this->serverPath . $this->fileFolder . $groupName . '/')) {
+            mkdir($this->serverPath . $this->fileFolder . $groupName . '/');
         }
         
-        copy($tmpFile, $this->fileFolder . $groupName . '/' . $fileName);
+        copy($tmpFile, $this->serverPath . $this->fileFolder . $groupName . '/' . $fileName);
         unlink($tmpFile);
 
-        if (empty(filesize($this->fileFolder . $groupName . '/' . $fileName))) {
+        if (empty(filesize($this->serverPath . $this->fileFolder . $groupName . '/' . $fileName))) {
             $this->errors[] = 'Не удалось скопировать файл в финальную папку: ' . $url;
-            unlink($this->fileFolder . $groupName . '/' . $fileName);
+            unlink($this->serverPath . $this->fileFolder . $groupName . '/' . $fileName);
             return $readyFile;
         }
 
@@ -226,7 +226,7 @@ class VkBot extends Parser
             $fileName = time();
         }
 
-        $tempFile = $this->tempFolder . $fileName;
+        $tempFile = $this->serverPath . $this->tempFolder . $fileName;
         file_put_contents($tempFile, '');
         if (!is_file($tempFile)) {
             $tempFile = '';
@@ -247,7 +247,7 @@ class VkBot extends Parser
     {
         $results = [];
         if (empty($groupName)) {
-            $list = json_decode(file_get_contents($this->listGroupsFile), true);
+            $list = json_decode(file_get_contents($this->serverPath . $this->listGroupsFile), true);
             if (empty($list)) {
                 $this->errors[] = 'Не найден или пустой файл со списком групп';
                 return $results;
@@ -271,7 +271,7 @@ class VkBot extends Parser
             }
         }
         
-        file_put_contents($this->jsonFile, json_encode($this->history));
+        file_put_contents($this->serverPath . $this->jsonFile, json_encode($this->history));
         
         $allData = $this->sortData($this->history);
         return $allData;
@@ -279,11 +279,11 @@ class VkBot extends Parser
 
     private function getHistory(): void
     {
-        if (!is_file($this->jsonFile)) {
+        if (!is_file($this->serverPath . $this->jsonFile)) {
             return;
         }
 
-        $data = json_decode(file_get_contents($this->jsonFile), true);
+        $data = json_decode(file_get_contents($this->serverPath . $this->jsonFile), true);
         if (!empty($data)) {
             $this->history = $data;
         }
