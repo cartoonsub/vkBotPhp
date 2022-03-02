@@ -16,13 +16,14 @@ class VkBot extends Parser
     private $tempFolder = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/temp/';
     private $fileFolder = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/files/';
     private $jsonFile = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/srcData/allData.json';
-    
+    private $history = [];
+
     public function run(bool $getHistory = false, string $groupName): array
     {
         $results = [];
-        $history = $this->getDataFromJson();
+        $this->getHistory();
         if ($getHistory === true) {
-            return $history;
+            return $this->history;
         }
 
         $groups = $this->getGroupsList($groupName);
@@ -38,16 +39,16 @@ class VkBot extends Parser
             return $this->errors;
         }
 
-        $srcData = $this->getDataFromGroups($groups, $token, $history);
+        $srcData = $this->getDataFromGroups($groups, $token);
         if (empty($srcData)) {
             return $results;
         }
-        print_r($this->errors);
+        
         $results = $this->addNewDataToJson($srcData);
         return $results;
     }
 
-    private function getDataFromGroups(array $groups, string $token, array $history): array
+    private function getDataFromGroups(array $groups, string $token): array
     {
         $results = [];
         foreach ($groups as $groupName) {
@@ -263,32 +264,29 @@ class VkBot extends Parser
 
     private function addNewDataToJson(array $srcData): array
     {
-        $allData = $this->getDataFromJson();
+       $this->getHistory();
         foreach ($srcData as $groupName => $items) {
             foreach ($items as $uniqId => $item) {
-                $allData[$groupName][$uniqId] = $item;
+                $this->history[$groupName][$uniqId] = $item;
             }
         }
         
-        file_put_contents($this->jsonFile, json_encode($allData));
+        file_put_contents($this->jsonFile, json_encode($this->history));
         
-        $allData = $this->sortData($allData);
+        $allData = $this->sortData($this->history);
         return $allData;
     }
 
-    private function getDataFromJson(): array
+    private function getHistory(): void
     {
-        $results = [];
         if (!is_file($this->jsonFile)) {
-            return $results;
+            return;
         }
 
         $data = json_decode(file_get_contents($this->jsonFile), true);
         if (!empty($data)) {
-            $results = $data;
+            $this->history = $data;
         }
-
-        return $results;
     }
 
     private function sortData(array $allData): array

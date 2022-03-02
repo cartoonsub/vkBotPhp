@@ -47,9 +47,9 @@ $results = $Parser->run($skip, $groupName);
     </div>
     <?php
 
-    // echo '<pre>';
-    // var_export($results);
-    // echo '</pre>';
+    echo '<pre>';
+    var_export($results);
+    echo '</pre>';
 
     ?>
 </body>
