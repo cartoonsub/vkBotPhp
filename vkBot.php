@@ -1,16 +1,14 @@
 <?php
 
-declare(strict_types=1);
-
 ini_set('error_reporting', E_ALL);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
-
 require_once 'Src/VkBot.php';
 
 $Parser = new VkBot;
-$skip = (bool)$_GET['skip'] ?? false;
-$results = $Parser->run($skip);
+$skip = (bool)($_GET['skip'] ?? false);
+$groupName = $_GET['groupName'] ?? '';
+$results = $Parser->run($skip, $groupName);
 ?>
 
 <!DOCTYPE html>

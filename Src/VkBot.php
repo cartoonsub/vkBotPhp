@@ -1,7 +1,9 @@
 <?php
 
-declare(strict_types=1);
-
+// declare(strict_types=1);
+ini_set('error_reporting', E_ALL);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
 require_once 'Src/Parser.php';
 
 use Src\Parser;
@@ -9,21 +11,21 @@ use Src\Parser;
 class VkBot extends Parser
 {
     private $errors = [];
-    private $listGroupsFile = 'configs/groupsList.json';
-    private $config = 'configs/config.json';
-    private $tempFolder = 'temp/';
-    private $fileFolder = 'files/';
-    private $jsonFile = 'srcData/allData.json';
+    private $listGroupsFile = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/configs/groupsList.json';
+    private $config = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/configs/config.json';
+    private $tempFolder = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/';
+    private $fileFolder = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/files/';
+    private $jsonFile = '/home/u/udo11ru/cartoonsubcom/public_html/vkbot/srcData/allData.json';
     
-    public function run($onlyJson = false): array
+    public function run(bool $getHistory = false, string $groupName): array
     {
         $results = [];
         $history = $this->getDataFromJson();
-        if ($onlyJson === true) {
+        if ($getHistory === true) {
             return $history;
         }
 
-        $groups = $this->getGroupsList();
+        $groups = $this->getGroupsList($groupName);
         if (empty($groups)) {
             $this->errors[] = 'Не найден или пустой файл со списком групп';
             return $this->errors;
@@ -31,25 +33,28 @@ class VkBot extends Parser
 
         $config = json_decode(file_get_contents($this->config), true); 
         $token = $config['token'] ?? '';
+        if (empty($token)) {
+            $this->errors[] = 'Не найден токен';
+            return $this->errors;
+        }
 
-        $srcData = $this->getDataFromGroups($groups, $token);
+        $srcData = $this->getDataFromGroups($groups, $token, $history);
         if (empty($srcData)) {
             return $results;
         }
 
+        print_r($this->errors);
+        print_r($srcData);
         $results = $this->addNewDataToJson($srcData);
         return $results;
     }
 
-    private function getDataFromGroups(array $groups, string $token): array
+    private function getDataFromGroups(array $groups, string $token, array $history): array
     {
         $results = [];
-        if (empty($token)) {
-            $this->errors[] = 'Не найден токен';
-            return $results;
-        }
-        
         foreach ($groups as $groupName) {
+            sleep(mt_rand(1, 3));
+
             $url = "https://api.vk.com/method/wall.get?domain=$groupName&count=40&access_token=$token&v=5.81";
             $data = $this->getPage($url);
             if (empty($data['content'])) {
@@ -66,7 +71,13 @@ class VkBot extends Parser
             }
 
             foreach ($content['response']['items'] as $items) {
-                $uniqId = $groupName . $items['id'];
+                $id = $items['id'];
+                $uniqId = $groupName . '_' . $id;
+
+                if (!empty($history[$uniqId])) {
+                    continue;
+                }
+
                 $ownerId = $items['owner_id'];
                 $text = $items['text'] ?? '';
                 $date = '';
@@ -76,24 +87,24 @@ class VkBot extends Parser
                 } else {
                     $date = date('Y-m-d', $dateRaw);
                 }
-                
-                $attachments = $this->attachmentsProcessing($items['attachments'] ?? []);
+
+                $attachments = $this->attachmentsProcessing($items['attachments'] ?? [], $uniqId, $groupName);
                 $results[$groupName][$uniqId] = [
                     'uniqId'      => $uniqId,
                     'text'        => $text,
                     'date'        => $date,
                     'attachments' => $attachments,
                     'owner_id'    => $ownerId,
-                    'wallLink'    => 'https://vk.com/animatron?w=wall' . $ownerId . '_' . $items['id'],
-                    // 'url'         => $url,
-                ]; 
+                    'wallLink'    => 'https://vk.com/' .$groupName . '?w=wall' . $ownerId . '_' . $id,
+                ];
+                break;
             }
         }
 
         return $results;
     }
 
-    private function attachmentsProcessing($attachments): array
+    private function attachmentsProcessing(array $attachments, string $uniqId, string $groupName): array
     {
         $results = [];
         if (empty($attachments)) {
@@ -101,9 +112,8 @@ class VkBot extends Parser
         }
 
         foreach ($attachments as $attachment) {
-            sleep(mt_rand(1, 3));
             if ($attachment['type'] === 'photo') {
-                $photo = $this->getPhoto($attachment['photo']['sizes']);
+                $photo = $this->getPhoto($attachment['photo']['sizes'], $uniqId, $groupName);
                 if (!empty($photo)) {
                     $results['photo'][] = $photo;
                 }
@@ -123,14 +133,15 @@ class VkBot extends Parser
         return $results;
     }
     
-    private function getPhoto(array $photoLinks): string
+    private function getPhoto(array $photoLinks, string $uniqId, string $groupName): string
     {
         $image = '';
         $size = 0;
+        $url = '';
         foreach ($photoLinks as $items) {
-            $tempSize = (int)$items['height'] + (int)$items['width'];
-            if ($tempSize > $size) {
-                $size = $tempSize;
+            $curSize = (int)$items['width'];
+            if ($curSize > $size) {
+                $size = $curSize;
                 $url = $items['url'];
             }
         }
@@ -139,122 +150,90 @@ class VkBot extends Parser
             return $image;
         }
 
-        $image = $this->downloadFile($url);
-        // echo '<div style="background: gray"><pre>';
-        //     echo '<a href="' . $url . '">' . $image . '</a><br>';
-        //     // print_r($url);
-        // echo '</pre></div>';
-        
+        $image = $this->downloadFile($url, $uniqId, $groupName);
         return $image;
     }
 
-    public function downloadFile(string $url): string
+    public function downloadFile(string $url, string $uniqId, string $groupName): string
     {
         $readyFile = '';
         $fileNameRaw = pathinfo($url, PATHINFO_BASENAME);
         $nameData = explode('?', $fileNameRaw);
 
         $fileName = $nameData[0] ?? $fileNameRaw;
-        $tmpFile = $this->tempFolder . $fileName;
-        file_put_contents($this->tempFolder . $fileName, '');
-        if (!is_file($tmpFile)) {
+        $fileName = $uniqId . '_' . $fileName;
+        $tmpFile = $this->getTempFile($fileName);
+        if (empty($tmpFile)) {
+            $this->errors[] = 'Не создан временный файл: ' . $uniqId . ' => ' . $url;
             return $readyFile;
         }
         
-        $filePointer = fopen($tmpFile, 'wb');
+        // $filePointer = fopen($tmpFile, 'wb');
         
-        $curl = $this->curlSimpleInit();
-        curl_setopt_array(
-            $curl,
-            [
-                CURLOPT_URL            => $url,
-                CURLOPT_HEADER         => false,
-                CURLOPT_FOLLOWLOCATION => true,
-            ]
-        );
+        // $curl = $this->curlSimpleInit();
+        // curl_setopt_array(
+        //     $curl,
+        //     [
+        //         CURLOPT_URL            => $url,
+        //         CURLOPT_HEADER         => false,
+        //         CURLOPT_FOLLOWLOCATION => true,
+        //     ]
+        // );
 
-        // // Переданы данные для POST (массив, строка)
-        // if (is_array($usePost)) {
-        //     $postData = http_build_query($usePost);  // Не работало автоматом для многомерных массивов
-        // } else {
-        //     $postData = $usePost;
+        // curl_setopt($curl, CURLOPT_FILE, $filePointer);
+
+        // $curlResult = curl_exec($curl);
+        // if ($curlResult === false) {
+        //     $this->errors[] = 'Не скачен файл: ' . $uniqId . ' => ' . $url;
         // }
-        $postData = false;
-        if ($postData) {
-            curl_setopt_array(
-                $this->curlSimpleInit(),
-                [
-                    CURLOPT_POST       => true,
-                    CURLOPT_POSTFIELDS => $postData,
-                ]
-            );
-        } else {
-            curl_setopt($curl, CURLOPT_POST, false);
+
+        // curl_close($this->curlSimpleInit());
+        // fclose($filePointer);
+
+        $data = $this->getPage($url);
+        if (empty($data['content'])) {
+            $this->errors[] = 'Не скачен файл: ' . $uniqId . ' => ' . $url;
+            return $readyFile;
+        }
+        
+        file_put_contents($tmpFile, $data['content']);
+        if (empty(filesize($tmpFile))) {
+            $this->errors[] = 'Не скачен файл, пустой: ' . $uniqId . ' => ' . $url;
+            unlink($tmpFile);
+            return $readyFile;
         }
 
-        // $cookie = '';
-        // // Переданы cookie (массивом)
-        // if (is_array($useCookie)) {
-        //     foreach ($useCookie as $key => $value) {
-        //         $cookie .= "{$key}={$value};";
-        //     }
-        // } elseif ($useCookie !== '' && !is_bool($useCookie)) {  // Переданы cookie (строкой)
-        //     $cookie = $useCookie;
-        // }
-
-        // // Передаём куки строкой
-        // if ($cookie !== '') {
-        //     curl_setopt($this->curlSimpleInit(), CURLOPT_COOKIE, $cookie);
-        //     $this->Logger->info('CURLOPT_COOKIE: ' . $cookie, 'COOKIE');
-        // }
-
-        // // Автоматически вешаем куку через временный файл
-        // if ($useCookie === true) {
-        //     curl_setopt($this->curlSimpleInit(), CURLOPT_COOKIEFILE, '');
-        // }
-
-        // if ($this->debugMode) {
-        //     if (is_null($this->cookieFileName)) {
-        //         $this->cookieFileName = $this->FileHandler->getTempFileName('cookie');
-        //     }
-
-        //     curl_setopt($this->curlSimpleInit(), CURLOPT_COOKIEJAR, $this->cookieFileName);
-        // }
-
-        curl_setopt($curl, CURLOPT_FILE, $filePointer);
-
-        $curlResult = curl_exec($curl);
-        if ($curlResult === false) {
-            // $this->Logger->error(
-            //     'cURL error: ' . curl_error($this->curlSimpleInit()) . '. URL address: ' . $url,
-            //     'CURL'
-            // );
+        if (!is_dir($this->fileFolder . $groupName . '/')) {
+            mkdir($this->fileFolder . $groupName . '/');
         }
-
-        curl_close($this->curlSimpleInit());
-        fclose($filePointer);
-
-        // if (empty(filesize($tmpFile))) {
-        //     $this->errors[] = 'Не удалось скачать файл: ' . $url;
-        //     print_r(filesize($tmpFile));
-        //     print_r(($tmpFile));
-        //     return $readyFile;
-        // }
-
-        copy($tmpFile, $this->fileFolder . $fileName);
+        
+        copy($tmpFile, $this->fileFolder . $groupName . '/' . $fileName);
         unlink($tmpFile);
 
-        //todo
-        //решить вопрос почему для временного файла filesize возвращает ноль
-        // это из-за fopen
-        if (empty(filesize($this->fileFolder . $fileName))) {
-            $this->errors[] = 'Не удалось скачать файл: ' . $url;
-            unlink($this->fileFolder . $fileName);
+        if (empty(filesize($this->fileFolder . $groupName . '/' . $fileName))) {
+            $this->errors[] = 'Не удалось скопировать файл в финальную папку: ' . $url;
+            unlink($this->fileFolder . $groupName . '/' . $fileName);
             return $readyFile;
         }
 
-        $readyFile = $this->fileFolder . $fileName;
+        $readyFile = $this->fileFolder . $groupName . '/' . $fileName;
         return $readyFile;
+    }
+
+    private function getTempFile($fileName = ''): string
+    {
+        if (empty($fileName)) {
+            sleep(1);
+            $fileName = time();
+        }
+
+        $tempFile = $this->tempFolder . $fileName;
+        file_put_contents($tempFile, '');
+        if (!is_file($tempFile)) {
+            $tempFile = '';
+        }
+
+        return $tempFile;
     }
 
     private function getVideoYoutube(array $dataVideo): string
@@ -265,10 +244,10 @@ class VkBot extends Parser
         return $videoFrame;
     }
 
-    public function getGroupsList(): array
+    public function getGroupsList($groupName = ''): array
     {
         $results = [];
-        if (empty($_GET['groupName'])) {
+        if (empty($groupName)) {
             $list = json_decode(file_get_contents($this->listGroupsFile), true);
             if (empty($list)) {
                 $this->errors[] = 'Не найден или пустой файл со списком групп';
@@ -278,7 +257,9 @@ class VkBot extends Parser
             return $list['groups'] ?? [];
         }
 
-        $results[] = trim($_GET['groupName']);//need defence? todo
+        $groupName = trim(stripslashes($groupName));
+        $groupName = htmlentities($groupName);
+        $results[] = $groupName;
         return $results;
     }
 
