@@ -43,8 +43,6 @@ class VkBot extends Parser
             return $results;
         }
 
-        print_r($this->errors);
-        print_r($srcData);
         $results = $this->addNewDataToJson($srcData);
         return $results;
     }
@@ -97,7 +95,6 @@ class VkBot extends Parser
                     'owner_id'    => $ownerId,
                     'wallLink'    => 'https://vk.com/' .$groupName . '?w=wall' . $ownerId . '_' . $id,
                 ];
-                break;
             }
         }
 
