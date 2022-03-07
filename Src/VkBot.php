@@ -5,7 +5,10 @@ ini_set('error_reporting', E_ALL);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 ini_set('max_execution_time', '300');
-require_once 'Src/Parser.php';
+
+require_once 'vendor/autoload.php';
+
+// require_once 'Src/Parser.php';
 
 use Src\Parser;
 
@@ -20,7 +23,7 @@ class VkBot extends Parser
     private $jsonFile = 'srcData/allData.json';
     private $history = [];
 
-    public function run(bool $getHistory = false, string $groupName): array
+    public function run(bool $getHistory = false, bool $getArray = false, string $groupName): array
     {
         $results = [];
         $this->getHistory();

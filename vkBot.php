@@ -8,7 +8,7 @@ require_once 'Src/VkBot.php';
 $Parser = new VkBot;
 $skip = (bool)($_GET['skip'] ?? false);
 $groupName = $_GET['groupName'] ?? '';
-$results = $Parser->run($skip, $groupName);
+$results = $Parser->run($skip, true, $groupName);
 ?>
 
 <!DOCTYPE html>
