@@ -91,6 +91,7 @@ class VkBot extends Parser
 
                 $attachments = $this->attachmentsProcessing($items['attachments'] ?? [], $uniqId, $groupName);
                 $results[$groupName][$uniqId] = [
+                    'groupName'   => $groupName,
                     'uniqId'      => $uniqId,
                     'text'        => $text,
                     'date'        => $date,
