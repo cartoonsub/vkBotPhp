@@ -46,7 +46,7 @@ $results = $Parser->run($skip, $groupName);
                             if (!empty($item['attachments']['photo'])) :
                                 foreach ($item['attachments']['photo'] as $image) : ?>
                                     <div class="picture">
-                                        <img src="<?php /* $image; */ ?>" alt="">
+                                        <img src="<?= $image; ?>" alt="">
                                     </div>
                             <?php endforeach;
                             endif; ?>
