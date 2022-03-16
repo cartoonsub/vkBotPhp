@@ -133,7 +133,7 @@ class VkBot extends Parser
                 if ($typeVideo === 'YouTube') {
                     $video = $this->getVideoYoutube($attachment['video']);
                     if (!empty($video)) {
-                        $results['video'][] = 'https://vk.com/syktyvenglish?z=' . $video;
+                        $results['video'][] = 'https://vk.com/' . $groupName . '?z=' . $video;
                     }
                 }
             }
