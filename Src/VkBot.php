@@ -33,29 +33,29 @@ class VkBot extends Parser
 
         $this->getHistory();
         if ($getHistory === true) {
-            return ($returnType === 'json' ? json_encode($this->history) : $this->history);
+            return $this->history;
         }
 
         $groups = $this->getGroupsList($needGroup);
         if (empty($groups)) {
             $this->errors[] = 'Не найден или пустой файл со списком групп';
-            return ($returnType === 'json' ? json_encode($this->errors) : $this->errors);
+            return $this->errors;
         }
 
         $config = json_decode(file_get_contents($this->serverPath . $this->config), true); 
         $token = $config['token'] ?? '';
         if (empty($token)) {
             $this->errors[] = 'Не найден токен';
-            return ($returnType === 'json' ? json_encode($this->errors) : $this->errors);
+            return $this->errors;
         }
         
         $srcData = $this->getDataFromGroups($groups, $token);
         if (empty($srcData)) {
-            return ($returnType === 'json' ? json_encode($this->history) : $this->history);
+            return $this->history;
         }
         
         $results = $this->addNewDataToJson($srcData);
-        return ($returnType === 'json' ? json_encode($results) : $results);
+        return $results;
     }
 
     private function getDataFromGroups(array $groups, string $token): array
