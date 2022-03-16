@@ -5,10 +5,15 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 require_once 'Src/VkBot.php';
 
+$param = [
+    'group' => $_GET['group'] ?? '',
+    'date'  => 'date',
+    'skip'  => $skip = (bool)($_GET['skip'] ?? false),
+    'type'  => 'array'
+];
 $Parser = new VkBot;
-$skip = (bool)($_GET['skip'] ?? false);
-$groupName = $_GET['groupName'] ?? '';
-$results = $Parser->run($skip, true, $groupName);
+$results = $Parser->run($param);
+
 ?>
 
 <!DOCTYPE html>

@@ -8,7 +8,7 @@ ini_set('max_execution_time', '300');
 
 require_once 'vendor/autoload.php';
 
-// require_once 'Src/Parser.php';
+require_once 'Src/Parser.php';
 
 use Src\Parser;
 
@@ -23,34 +23,39 @@ class VkBot extends Parser
     private $jsonFile = 'srcData/allData.json';
     private $history = [];
 
-    public function run(bool $getHistory = false, bool $getArray = false, string $groupName): array
+    public function run(array $param)
     {
         $results = [];
+        $getHistory = $param['skip'] ?? false;
+        $returnType = $param['type'] ?? 'json';
+        $needDate = $param['date'] ?? '';
+        $needGroup = $param['group'] ?? '';
+
         $this->getHistory();
         if ($getHistory === true) {
-            return $this->history;
+            return ($returnType === 'json' ? json_encode($this->history) : $this->history);
         }
 
-        $groups = $this->getGroupsList($groupName);
+        $groups = $this->getGroupsList($needGroup);
         if (empty($groups)) {
             $this->errors[] = 'Не найден или пустой файл со списком групп';
-            return $this->errors;
+            return ($returnType === 'json' ? json_encode($this->errors) : $this->errors);
         }
 
         $config = json_decode(file_get_contents($this->serverPath . $this->config), true); 
         $token = $config['token'] ?? '';
         if (empty($token)) {
             $this->errors[] = 'Не найден токен';
-            return $this->errors;
+            return ($returnType === 'json' ? json_encode($this->errors) : $this->errors);
         }
-
+        
         $srcData = $this->getDataFromGroups($groups, $token);
         if (empty($srcData)) {
-            return $this->history;
+            return ($returnType === 'json' ? json_encode($this->history) : $this->history);
         }
         
         $results = $this->addNewDataToJson($srcData);
-        return $results;
+        return ($returnType === 'json' ? json_encode($results) : $results);
     }
 
     private function getDataFromGroups(array $groups, string $token): array

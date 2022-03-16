@@ -7,60 +7,66 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 require_once 'Src/VkBot.php';
 
-class Api
+final class Api
 {
     public function run() {
         if (empty($_GET)) {
             $results = [
                 'answer' => false,
-                'data'   => 'Пустой запрос',
+                'error'  => 'Пустой запрос',
+                'data'   => [],
             ];
         
             $this->response($results);
             exit();
         }
 
-        $allowedField = [
-            'getData',
-            'group',
-            'date',
-            'skip',
-        ];
-
-        $param = [];
-        foreach ($_GET as $field => $value) {
-            if (empty($allowedField[$field])) {
-                continue;
-            }
-
-            $param[$field] = $value;
-        }
-
+        $param = $this->getParam();
         if (empty($param)) {
             $results = [
                 'answer' => false,
-                'data'   => 'Нет актуальных параметров для запуска',
+                'error'  => 'Нет актуальных параметров для запуска',
+                'data'   => [],
             ];
             $this->response($results);
             exit();
         }
 
-        $Paser = new Parser();
+        $param['type'] = 'json';
+        $Bot = new VkBot;
+        $results = $Bot->run($param);
+        print_r($results);
     }
 
-    protected function response($data, $status = 200) {
-        header("HTTP/1.1 " . $status . " " . $this->requestStatus($status));
-        echo  json_encode($data);
+    private function getParam(): array
+    {
+        $results = [];
+        $allowedField = [
+            'group' => 'cartoonsub',
+            'date'  => '2022-01-01',
+            'skip'  => true,
+            'type'  => 'json'
+        ];
+
+        foreach ($_GET as $field => $value) {
+            if (empty($allowedField[$field])) {
+                continue;
+            }
+
+            if ($field === 'skip') {
+                $results[$field] = (bool)$value;
+                continue;
+            }
+            
+            $results[$field] = $value;
+        }
+
+        return $results;
     }
 
-    private function requestStatus(int $code) {
-        $status = array(
-            200 => 'OK',
-            404 => 'Not Found',
-            405 => 'Method Not Allowed',
-            500 => 'Internal Server Error',
-        );
-        return ($status[$code])?$status[$code]:$status[500];
+    protected function response(array $data): void
+    {
+        echo json_encode($data);
     }
 }
 
