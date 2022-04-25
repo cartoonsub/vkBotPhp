@@ -26,7 +26,7 @@ class VkBot extends Parser
     public function run(array $param)
     {
         $results = [];
-        $getHistory = $param['skip'] ?? false;
+        $getHistory = (bool)$param['skip'] ?? false;
         $returnType = $param['type'] ?? 'json';
         $needDate = $param['date'] ?? '';
         $needGroup = $param['group'] ?? '';
