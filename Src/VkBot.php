@@ -11,6 +11,7 @@ require_once 'vendor/autoload.php';
 require_once 'Src/Parser.php';
 
 use Src\Parser;
+use GuzzleHttp\Client;
 
 class VkBot extends Parser
 {
@@ -60,11 +61,21 @@ class VkBot extends Parser
 
     private function getDataFromGroups(array $groups, string $token): array
     {
+        $client = new Client();
         $results = [];
         foreach ($groups as $groupName) {
             sleep(mt_rand(1, 3));
 
             $url = "https://api.vk.com/method/wall.get?domain=$groupName&count=40&access_token=$token&v=5.81";
+            try {
+                $response = $client->get($url);
+                $content = (string)($response->getBody());
+            } catch (Throwable $E) {
+                $this->errors[] = 'Не удалось подключиться для группы: ' . $groupName;
+                $this->errors[] = $E->getMessage();
+                continue;
+            }
+
             $data = $this->getPage($url);
             if (empty($data['content'])) {
                 $this->errors[] = 'Не удалось подключиться для группы: ' . $groupName;
