@@ -24,49 +24,55 @@ class VkBot extends Parser
     private $jsonFile = 'srcData/allData.json';
     private $history = [];
 
-    public function run(array $param)
+    public function run(array $param): string
     {
-        $results = [];
-        $getHistory = (bool)$param['skip'] ?? false;
-        $returnType = $param['type'] ?? 'json';
-        $needDate = $param['date'] ?? '';
-        $needGroup = $param['group'] ?? '';
+        $results = '';
 
-        $this->getHistory();
-        if ($getHistory === true) {
-            return $this->history;
+        $skip = (bool)($param['skip'] ?? false);
+        $date = $param['date'] ?? '';
+        $needGroup = $param['group'] ?? '';
+        $deep = (int)($param['deep'] ?? 40);
+
+        $historyData = $this->getHistory();
+        if ($skip === true) {
+            return $historyData;
+        }
+
+        $data = json_decode($historyData, true);
+        if (empty($data)) {
+            return $results;
         }
 
         $groups = $this->getGroupsList($needGroup);
         if (empty($groups)) {
             $this->errors[] = 'Не найден или пустой файл со списком групп';
-            return $this->errors;
+            return $results;
         }
 
         $config = json_decode(file_get_contents($this->serverPath . $this->config), true); 
         $token = $config['token'] ?? '';
         if (empty($token)) {
             $this->errors[] = 'Не найден токен';
-            return $this->errors;
+            return $results;
         }
         
-        $srcData = $this->getDataFromGroups($groups, $token);
+        $srcData = $this->getDataFromGroups($groups, $token, $deep);
         if (empty($srcData)) {
-            return $this->history;
+            return $historyData;
         }
         
-        $results = $this->addNewDataToJson($srcData);
+        $results = $this->addNewDataToJson($srcData, $historyData);
         return $results;
     }
 
-    private function getDataFromGroups(array $groups, string $token): array
+    private function getDataFromGroups(array $groups, string $token, int $deep): array
     {
         $client = new Client();
         $results = [];
         foreach ($groups as $groupName) {
             sleep(mt_rand(1, 3));
 
-            $url = "https://api.vk.com/method/wall.get?domain=$groupName&count=40&access_token=$token&v=5.81";
+            $url = "https://api.vk.com/method/wall.get?domain=$groupName&count=$deep&access_token=$token&v=5.81";
             try {
                 $response = $client->get($url);
                 $content = (string)($response->getBody());
@@ -76,6 +82,8 @@ class VkBot extends Parser
                 continue;
             }
 
+            echo $url;
+            return [];
             $data = $this->getPage($url);
             if (empty($data['content'])) {
                 $this->errors[] = 'Не удалось подключиться для группы: ' . $groupName;
@@ -283,31 +291,38 @@ class VkBot extends Parser
         return $results;
     }
 
-    private function addNewDataToJson(array $srcData): array
+    private function addNewDataToJson(array $srcData, string $historyData): array
     {
-       $this->getHistory();
+        $history = json_decode($historyData, true);
+        if (empty($history)) {
+            $history = [];
+        }
+
         foreach ($srcData as $groupName => $items) {
             foreach ($items as $uniqId => $item) {
-                $this->history[$groupName][$uniqId] = $item;
+                $history[$groupName][$uniqId] = $item;
             }
         }
         
-        file_put_contents($this->serverPath . $this->jsonFile, json_encode($this->history));
+        $allData = $this->sortData($history);
+        file_put_contents($this->serverPath . $this->jsonFile, json_encode($allData));
         
-        $allData = $this->sortData($this->history);
         return $allData;
     }
 
-    private function getHistory(): void
+    private function getHistory(): string
     {
+        $results = '';
         if (!is_file($this->serverPath . $this->jsonFile)) {
-            return;
+            return $results;
         }
 
-        $data = json_decode(file_get_contents($this->serverPath . $this->jsonFile), true);
-        if (!empty($data)) {
-            $this->history = $data;
+        $jsonData = file_get_contents($this->serverPath . $this->jsonFile);
+        if (!empty($jsonData)) {
+            $results = $jsonData;
         }
+
+        return $results;
     }
 
     private function sortData(array $allData): array
@@ -321,9 +336,6 @@ class VkBot extends Parser
             $allData[$group] = array_reverse($items);
         }
 
-        
-
-        
         return $allData;
     }
 }

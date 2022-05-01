@@ -4,7 +4,6 @@ ini_set('error_reporting', E_ALL);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 require_once 'Src/VkBot.php';
-require_once 'Src/DbWriter.php';
 
 $param = [
     'group' => $_GET['group'] ?? '',
@@ -14,8 +13,6 @@ $param = [
 ];
 $Parser = new VkBot;
 $results = $Parser->run($param);
-$DbWriter = new DbWriter;
-$DbWriter->writeNews($results);
 ?>
 
 <!DOCTYPE html>
