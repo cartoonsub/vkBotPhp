@@ -32,8 +32,9 @@ $errors = $results['errors'] ?? [];
     <div class="main">
         <div class="errors">
             <ul>
-                <?php foreach ($errors as $error) { ?>
+                <?php foreach ($errors as $error):?>
                     <li><?php echo $error; ?></li>
+                <?php endforeach;?>
             </ul>
         </div>
         <div class="menu">
