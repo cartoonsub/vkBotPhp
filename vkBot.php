@@ -13,6 +13,7 @@ $param = [
 
 $Parser = new VkBot;
 $results = (array)json_decode($Parser->run($param), true);
+$errors = $results['errors'] ?? [];
 ?>
 
 <!DOCTYPE html>
@@ -29,6 +30,12 @@ $results = (array)json_decode($Parser->run($param), true);
 
 <body>
     <div class="main">
+        <div class="errors">
+            <ul>
+                <?php foreach ($errors as $error) { ?>
+                    <li><?php echo $error; ?></li>
+            </ul>
+        </div>
         <div class="menu">
             <ul>
             <?php foreach ($results as $group => $items) : ?>
