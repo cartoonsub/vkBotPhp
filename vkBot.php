@@ -6,11 +6,11 @@ ini_set('display_startup_errors', 1);
 require_once 'Src/VkBot.php';
 
 $param = [
+    'skip'  => (bool)($_GET['skip'] ?? true),
     'group' => $_GET['group'] ?? '',
-    'date'  => 'date',
-    'skip'  => $skip = (bool)($_GET['skip'] ?? false),
-    'type'  => 'array'
+    'deep'  => (int)($_GET['deep'] ?? 40),
 ];
+
 $Parser = new VkBot;
 $results = $Parser->run($param);
 ?>
