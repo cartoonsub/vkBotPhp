@@ -1,13 +1,11 @@
 <?php
 
-// declare(strict_types=1);
 ini_set('error_reporting', E_ALL);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 ini_set('max_execution_time', '300');
 
 require_once 'vendor/autoload.php';
-
 require_once 'Src/Parser.php';
 
 use Src\Parser;
@@ -35,7 +33,9 @@ class VkBot extends Parser
 
         $historyData = $this->getHistory();
         if ($skip === true) {
-            return $historyData;
+            $data = json_decode($historyData, true);
+            $results['data'] = $data;
+            return json_encode($results);
         }
 
         $data = json_decode($historyData, true);
