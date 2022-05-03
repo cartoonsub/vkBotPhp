@@ -39,13 +39,13 @@ $errors = $results['errors'] ?? [];
         </div>
         <div class="menu">
             <ul>
-            <?php foreach ($results as $group => $items) : ?>
+            <?php foreach ($results['data'] ?? [] as $group => $items) : ?>
                 <li><a href="#" class="groupLink" data-groupname="<?=$group;?>"><?=$group;?></a></li>
             <?php endforeach; ?>
             </ul>
         </div>
 
-        <?php foreach ($results as $group => $items) : ?>
+        <?php foreach ($results['data'] ?? [] as $group => $items) : ?>
             <div class="group" id="<?=$group . 'byId'; ?>">
                 <h2>Новости по группе <?= $group ?></h2>
                 <?php foreach ($items as $item) : ?>
