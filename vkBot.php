@@ -12,7 +12,7 @@ $param = [
 ];
 
 $Parser = new VkBot;
-$results = $Parser->run($param);
+$results = (array)json_decode($Parser->run($param), true);
 ?>
 
 <!DOCTYPE html>
@@ -61,16 +61,4 @@ $results = $Parser->run($param);
         <?php endforeach; ?>
     </div>
 </body>
-
 </html>
-
-        
-<?php
-
-use DbWriter;
-
-// echo '<pre>';
-// var_export($results);
-// echo '</pre>';
-
-?>
