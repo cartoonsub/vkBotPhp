@@ -24,49 +24,69 @@ class VkBot extends Parser
 
     public function run(array $param): string
     {
-        $results = [];
-
+        $results = '';
         $skip = (bool)($param['skip'] ?? false);
         $date = $param['date'] ?? '';
-        $needGroup = $param['group'] ?? '';
+        $needGroup = (string)$param['group'] ?? '';
         $deep = (int)($param['deep'] ?? 40);
 
         $historyData = $this->getHistory();
         if ($skip === true) {
-            $data = json_decode($historyData, true);
-            $results['data'] = $data;
-            return json_encode($results);
+            $results = $this->prepareJson($historyData);
+            return $results;
         }
 
-        $data = json_decode($historyData, true);
         if (empty($data)) {
-            $results['errors'][] = 'Нет данных из предыдущих запусков';
-            return json_encode($results);
+            $this->errors[] = 'Нет данных из предыдущих запусков';
         }
+
+        $srcData = $this->getResults($needGroup, $deep);
+        if (empty($srcData)) {
+            $this->errors[] = 'Не найдено новых новостей';
+            $results = $this->prepareJson($historyData);
+            return $results;
+        }
+        
+        $rawResults = $this->addNewDataToJson($srcData, $historyData);
+        $results = $this->prepareResults($rawResults);
+        return $results;
+    }
+
+    private function prepareJson(string $dataJson): string
+    {
+        $results = [];
+        $data = json_decode($dataJson, true);
+        $results['data'] = $data;
+        return json_encode($results);
+    }
+
+    private function prepareResults(array $data): string
+    {
+        $data['data'] = $data;
+        $date['errors'] = $this->errors;
+
+        return json_encode($data);
+    }
+
+    private function getResults(string $needGroup, int $deep): array
+    {
+        $results = [];
 
         $groups = $this->getGroupsList($needGroup);
         if (empty($groups)) {
-            $results['errors'][] = 'Не найден или пустой файл со списком групп';
-            return json_encode($results);
+            $this->errors[] = 'Не найден или пустой файл со списком групп';
+            return $results;
         }
 
         $config = json_decode(file_get_contents($this->serverPath . $this->config), true); 
         $token = $config['token'] ?? '';
         if (empty($token)) {
-            $results['errors'][] = 'Не найден токен';
-            return json_encode($results);
+            $this->errors[] = 'Не найден токен';
+            return $results;
         }
         
-        $srcData = $this->getDataFromGroups($groups, $token, $deep);
-        if (empty($srcData)) {
-            $results['errors'][] = 'Не найдено новых новостей';
-            $data = json_decode($historyData, true);
-            $results['data'] = $data;
-            return json_encode($results);
-        }
-        
-        $results = $this->addNewDataToJson($srcData, $historyData);
-        return json_encode($results);
+        $results = $this->getDataFromGroups($groups, $token, $deep);
+        return $results;
     }
 
     private function getDataFromGroups(array $groups, string $token, int $deep): array
@@ -86,7 +106,6 @@ class VkBot extends Parser
                 continue;
             }
 
-            echo $url;
             return [];
             $data = $this->getPage($url);
             if (empty($data['content'])) {
