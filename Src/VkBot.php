@@ -96,28 +96,24 @@ class VkBot extends Parser
         foreach ($groups as $groupName) {
             sleep(mt_rand(1, 3));
 
+            $content = '';
             $url = "https://api.vk.com/method/wall.get?domain=$groupName&count=$deep&access_token=$token&v=5.81";
             try {
                 $response = $client->get($url);
                 $content = (string)($response->getBody());
             } catch (Throwable $E) {
-                $this->errors[] = 'Не удалось подключиться для группы: ' . $groupName;
-                $this->errors[] = $E->getMessage();
+                $this->errors[] = 'Не удалось подключиться для группы: ' . $groupName . ' => ' . $E->getMessage();
                 continue;
             }
 
-            return [];
-            $data = $this->getPage($url);
-            if (empty($data['content'])) {
+            if (empty($content)) {
                 $this->errors[] = 'Не удалось подключиться для группы: ' . $groupName;
-                $this->errors['info'][$groupName] = $data['info'] ?? '';
                 continue;
             }
 
-            $content = json_decode($data['content'], true);
+            $content = json_decode($content, true);
             if (empty($content['response']['items'])) {
                 $this->errors[] = 'Нет данных для группы: ' . $groupName;
-                $this->errors['info'][$groupName] = $data['info'] ?? '';
                 continue;
             }
 
@@ -219,34 +215,22 @@ class VkBot extends Parser
             return $readyFile;
         }
         
-        // $filePointer = fopen($tmpFile, 'wb');
-        
-        // $curl = $this->curlSimpleInit();
-        // curl_setopt_array(
-        //     $curl,
-        //     [
-        //         CURLOPT_URL            => $url,
-        //         CURLOPT_HEADER         => false,
-        //         CURLOPT_FOLLOWLOCATION => true,
-        //     ]
-        // );
+        $content = '';
+        $client = new Client();
+        try {
+            $response = $client->get($url);
+            $content = (string)($response->getBody());
+        } catch (Throwable $E) {
+            $this->errors[] = "Не удалось скачать фото для группы:  $groupName url: $url => " . $E->getMessage();
+            return $readyFile;
+        }
 
-        // curl_setopt($curl, CURLOPT_FILE, $filePointer);
-
-        // $curlResult = curl_exec($curl);
-        // if ($curlResult === false) {
-        //     $this->errors[] = 'Не скачен файл: ' . $uniqId . ' => ' . $url;
-        // }
-
-        // curl_close($this->curlSimpleInit());
-        // fclose($filePointer);
-        $data = $this->getPage($url);
-        if (empty($data['content'])) {
+        if (empty($content)) {
             $this->errors[] = 'Не скачен файл: ' . $uniqId . ' => ' . $url;
             return $readyFile;
         }
         
-        file_put_contents($tmpFile, $data['content']);
+        file_put_contents($tmpFile, $content);
         clearstatcache();
         if (empty(filesize($tmpFile))) {
             $this->errors[] = 'Не скачен файл, пустой: ' . $uniqId . ' => ' . $url . ' => ' . $tmpFile;
@@ -343,6 +327,7 @@ class VkBot extends Parser
         $jsonData = file_get_contents($this->serverPath . $this->jsonFile);
         if (!empty($jsonData)) {
             $results = $jsonData;
+            $this->history = json_decode($jsonData, true);
         }
 
         return $results;
