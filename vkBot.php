@@ -53,6 +53,7 @@ $errors = $results['errors'] ?? [];
                         <div class="date"><?= $item['date']; ?></div>
                         <p><?= $item['text']; ?></p>
                         <p><a href="<?= $item['wallLink']; ?>" target="new">Ссылка на стену</a></p>
+                        <p><?= $item['uniqId'];?></p>
                         <div class="gallery">
                             <?php
                             if (!empty($item['attachments']['photo'])) :

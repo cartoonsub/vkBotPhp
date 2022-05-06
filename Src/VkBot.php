@@ -310,7 +310,7 @@ class VkBot extends Parser
                 $history[$groupName][$uniqId] = $item;
             }
         }
-        
+
         $allData = $this->sortData($history);
         file_put_contents($this->serverPath . $this->jsonFile, json_encode($allData));
         
@@ -327,7 +327,12 @@ class VkBot extends Parser
         $jsonData = file_get_contents($this->serverPath . $this->jsonFile);
         if (!empty($jsonData)) {
             $results = $jsonData;
-            $this->history = json_decode($jsonData, true);
+            $data = json_decode($jsonData, true);
+            foreach ($data as $groupName => $items) {
+                foreach ($items as $item) {
+                    $this->history[$groupName][$item['uniqId']] = $item['uniqId'];
+                }
+            }
         }
 
         return $results;
