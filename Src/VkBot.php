@@ -135,7 +135,7 @@ class VkBot extends Parser
                     $date = date('Y-m-d', $dateRaw);
                 }
 
-                $attachments = $this->attachmentsProcessing($items['attachments'] ?? [], $uniqId, $groupName);
+                $attachments = $this->attachmentsProcessing($items['attachments'] ?? [], $uniqId, $groupName, $text);
                 $results[$groupName][$uniqId] = [
                     'groupName'   => $groupName,
                     'uniqId'      => $uniqId,
@@ -151,7 +151,7 @@ class VkBot extends Parser
         return $results;
     }
 
-    private function attachmentsProcessing(array $attachments, string $uniqId, string $groupName): array
+    private function attachmentsProcessing(array $attachments, string $uniqId, string $groupName, string $text): array
     {
         $results = [];
         if (empty($attachments)) {
@@ -168,10 +168,11 @@ class VkBot extends Parser
 
             if ($attachment['type'] === 'video') {
                 $typeVideo = $attachment['video']['platform'] ?? '';
+                $id = $attachment['video']['id'] ?? time();
                 if ($typeVideo === 'YouTube') {
-                    $video = $this->getVideoYoutube($attachment['video']);
-                    if (!empty($video)) {
-                        $results['video'][] = 'https://vk.com/' . $groupName . '?z=' . $video;
+                    $youtubeData = $this->getVideoYoutube($attachment['video'], $text, $groupName);
+                    if (!empty($youtubeData)) {
+                        $results['video'][$id] = $youtubeData;
                     }
                 }
             }
@@ -271,12 +272,52 @@ class VkBot extends Parser
         return $tempFile;
     }
 
-    private function getVideoYoutube(array $dataVideo): string
+    private function getVideoYoutube(array $dataVideo, string $title, string $groupName): array
     {
-        $videoFrame = '';
+        $results = [];
+        $pattern = '~https://youtu.be/(\w+)|https://[w]+\.youtube\.com/watch\?v=(\w+)|https://www.youtube.com/(\w+)~';
+
+        if (preg_match($pattern, $title, $matches)) {
+            $results['idVideo'] = $matches[1];
+            $results['url'] = 'https://youtu.be/' . $matches[1]; 
+        }
+
+        $results['description'] = $dataVideo['description'] ?? '';
+        $results['title'] = $dataVideo['title'] ?? '';
         //https://vk.com/syktyvenglish?z=video-150625730_456239017
-        $videoFrame = 'video' . $dataVideo['owner_id'] . '_' . $dataVideo['id'];
-        return $videoFrame;
+        $results['vkLink'] = 'https://vk.com/' . $groupName . '?z=video' . $dataVideo['owner_id'] . '_' . $dataVideo['id'];
+
+        $max = [
+            'width' => 0,
+            'field' => '',
+        ];
+        foreach ($dataVideo as $field => $value) {
+            if (stripos($field, 'photo') === false) {
+                continue;
+            }
+
+            if (!preg_match('/photo_(\d+)/', $field, $matches)) {
+                continue;
+            }
+
+            if ($max['width'] > $matches[1]) {
+                continue;
+            }
+
+            $max['width'] = $matches[1];
+            $max['field'] = $field;
+        }
+
+        if (empty($max['field'])) {
+            return $results;
+        }
+
+        $image = $this->downloadFile($dataVideo[$max['field']], $dataVideo['id'], $groupName);
+        if (!empty($image)) {
+            $results['image'] = $image;
+        }
+
+        return $results;
     }
 
     public function getGroupsList($groupName = ''): array

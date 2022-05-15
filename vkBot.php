@@ -64,6 +64,11 @@ $errors = $results['errors'] ?? [];
                             <?php endforeach;
                             endif; ?>
                         </div>
+                        <?php
+                            echo '<pre>';
+                            print_r($item);
+                            echo '</pre>';
+                        ?>
                     </div>
                 <?php endforeach; ?>
             </div>
