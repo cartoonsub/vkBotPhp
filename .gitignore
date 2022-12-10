@@ -10,3 +10,6 @@ configs/config.php
 Src/Curl.php
 temp/*
 .vscode/sftp copy.json
+*.docx
+*.pdf
+
